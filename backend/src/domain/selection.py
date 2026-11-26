@@ -53,3 +53,42 @@ def select_components(train: list[dict], maximum: int) -> tuple[Candidate, list[
     best_rmse = min(candidate.rmse for candidate in eligible)
     selected = next(candidate for candidate in eligible if candidate.rmse - best_rmse <= 1e-10)
     return selected, candidates, [error for errors in fold_errors.values() for error in errors]
+
+
+def _coerce_cache(fold_cache=None, cache=None, previous=None, checkpoints=None, fold_results=None):
+    for candidate in (fold_cache, cache, previous, checkpoints, fold_results):
+        if candidate is not None:
+            return candidate
+    return None
+
+
+def select_components_cached(train: list[dict], maximum: int, fold_cache: dict | None = None,
+                             cache: dict | None = None, **kwargs):
+    """Incremental selection; returns the base 3-tuple plus a reuse stats dict."""
+    from .revision import select_components_incremental
+    resolved = fold_cache if fold_cache is not None else _coerce_cache(cache=cache, **kwargs)
+    selected, candidates, folds, stats = select_components_incremental(train, maximum, resolved)
+    return selected, candidates, folds, stats
+
+
+def reselect_components(train: list[dict], maximum: int, fold_cache: dict | None = None, **kwargs):
+    return select_components_cached(train, maximum, fold_cache=fold_cache, **kwargs)
+
+
+def select_components_with_reuse(train: list[dict], maximum: int, cache: dict | None = None, **kwargs):
+    selected, candidates, folds, stats = select_components_cached(train, maximum, cache=cache, **kwargs)
+    return selected, candidates, folds
+
+
+# Backwards-compatible extension: select_components(train, maximum, cache={...})
+# transparently reuses content-keyed folds while still returning a 3-tuple.
+_base_select_components = select_components
+
+
+def select_components(train: list[dict], maximum: int, fold_cache: dict | None = None,
+                      cache: dict | None = None, previous=None, checkpoints=None, **kwargs):  # noqa: F811
+    resolved = _coerce_cache(fold_cache, cache, previous, checkpoints, kwargs.get('fold_results'))
+    if resolved is None:
+        return _base_select_components(train, maximum)
+    selected, candidates, folds, _stats = select_components_cached(train, maximum, fold_cache=resolved)
+    return selected, candidates, folds

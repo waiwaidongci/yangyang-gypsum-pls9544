@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, ForeignKey, String, Text
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.config.database import Base
@@ -16,3 +16,8 @@ class Run(Base):
     settings: Mapped[dict] = mapped_column(JSON)
     result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error: Mapped[str | None] = mapped_column(Text)
+    # Dataset correction version this run was queued for; completion is fenced
+    # against the dataset's current version so out-of-order workers cannot
+    # overwrite the newest edition.
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default=text('1'), index=True)
+    fold_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)

@@ -31,9 +31,13 @@ docker compose exec -T backend python -m scripts.seed_demo
 | 导入试条 | `POST /api/datasets` | JSON 的 `name` 和 `csv`，其中 `csv` 为 UTF-8 CSV 全文 |
 | 查看台账 | `GET /api/datasets`、`GET /api/datasets/{id}` | 台账摘要、校验散列和分页试条数据 |
 | 启动校准 | `POST /api/runs` | `dataset_id`、`label`、可选 `settings` |
+| 登记抗折更正 | `POST /api/datasets/{dataset_id}/corrections` | `row_id`（试条编号）、`flexural_mpa`（更正值）；自动升版本并重算 |
+| 更正版 CSV 重导 | `POST /api/datasets/{dataset_id}/reimport` | `csv` 为更正后的整份 CSV |
+| 更正记录 | `GET /api/datasets/{dataset_id}/corrections` | 历次更正的旧值/新值与版本 |
 | 查看校准 | `GET /api/runs/{id}` | 等待 `completed`，在 `result` 中读摘要、指标及各表 |
 | 质量复核 | `POST /api/runs/{id}/review` | `decision` 为 `approved` 或 `rejected`，`note` 为复核意见 |
-| 下载表 | `GET /api/runs/{id}/export/{key}` | 复核批准后可下载，`key` 对应结果表标识 |
+| 下载表 | `GET /api/runs/{id}/export/{key}` | 该版本复核批准后可下载；台账更正后旧版立即 409 停供 |
+| 当前交接下载 | `GET /api/datasets/{dataset_id}/downloads/{key}` | 只指向当前版本的最新获批运行，最新版获批后恢复 |
 
 可在项目根生成完整的可重导演示 CSV。文件包含已测和待测分区，待测抗折一列为空。
 

@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import JSON, ForeignKey, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.config.database import Base
@@ -12,3 +12,5 @@ class Dataset(Base):
     checksum: Mapped[str] = mapped_column(String(64))
     rows: Mapped[list] = mapped_column(JSON)
     created_by: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+    # Bumped once per registered measurement correction; runs are fenced by it.
+    version: Mapped[int] = mapped_column(Integer, default=1, server_default=text('1'))

@@ -10,6 +10,16 @@ from .settings import SPEC, parse_settings
 
 __all__ = ["SPEC", "demo_rows", "normalize_rows", "analyze"]
 
+# Re-exported for callers/tests that reach the versioned recomputation through
+# the project orchestration module.
+from .revision import (  # noqa: E402,F401
+    analyze_incremental,
+    analyze_revision,
+    apply_correction,
+    recompute_analysis,
+    select_components_incremental,
+)
+
 
 def analyze(rows: list[dict], settings: dict) -> dict:
     maximum, threshold = parse_settings(settings)

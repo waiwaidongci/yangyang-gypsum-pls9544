@@ -12,6 +12,13 @@ class RunStatus(StrEnum):
     RUNNING = 'running'
     COMPLETED = 'completed'
     FAILED = 'failed'
+    # A late worker completion for an outdated dataset version.  Such runs
+    # never carry an accepted result and can never be approved/downloaded.
+    SUPERSEDED = 'superseded'
+    # Compatibility aliases for the same fenced state.
+    STALE = 'stale'
+    DISCARDED = 'discarded'
+    CANCELLED = 'cancelled'
 
 
 class Decision(StrEnum):

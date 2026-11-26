@@ -40,6 +40,16 @@ id,batch_id,split,nir_1200,nir_1450,nir_1550,nir_1720,nir_1940,nir_2100,density_
 
 `component_covariance` 的协方差是在全训练集上将每个潜变量得分标准化后，与标准化实测抗折计算的带符号样本协方差。得分互相正交，因此平方协方差乘以 100 是该分量对训练抗折方差的解释百分比。这个指标描述训练集关联，适用性用独立留出表评估。逐列 min/max 筛查只标出单通道越界；模型估计和实测排队均由复核员结合实验台记录使用。
 
+## 抗折更正、版本与增量折算
+
+实验台发现某个校准批的抗折实测录错时，登记一条更正（`POST /api/datasets/{dataset_id}/corrections`，体例如 `{"row_id":"GP-C03-04","flexural_mpa":5.123}`，分析员或负责人可登记）。系统在同一事务内更正台账行、把 `datasets.version` 加一、写入 `corrections` 留痕，并为新版本排入一个运行。也可用 `POST /api/datasets/{dataset_id}/reimport` 提交更正后的整份 CSV。
+
+- 逐批留折的拟合按“该折训练行”的稳定签名缓存（`fold_artifacts.fold_key`）。更正某批实测后：留出该批的那一折训练数据不含该批，签名不变，直接沿用其拟合与逐分量预测，只用更正后的实测重算折外 SSE/RMSE；其余各折训练集含被更正行，签名改变，重新拟合。全量训练的冻结模型始终重拟合。
+- 增量结果与对更正后台账执行 `analyze(rows, settings)` 从头计算的选型、指标和八张表逐值一致。
+- 每算完一折即写 `fold_checkpoints`/`fold_artifacts`。worker 中断后，当前版本重新排队，已 durable 的折按签名沿用，只补未完成的折。
+- 每次完工都用 `runs.version == datasets.version` 做围栏：重算期间继续更正会产生更新版本；旧版本即使乱序晚完工，也标记为 `superseded`、不写结果，只有最新版本可被采纳。
+- 更正一登记，旧版本运行的 `/api/runs/{id}/export/{key}` 与当前交接地址立即返回 409 停供旧预测；稳定地址 `/api/datasets/{dataset_id}/downloads/{key}` 不回退到旧获批版。最新版本算完并经负责人批准后，该版本的 `/runs/{id}/export/...` 与稳定地址才恢复 200。旧版本运行不能再批准；查阅员的运行列表/详情也只看当前获批版本。
+
 ## 可下载结果
 
 | 表标识 | 内容 |
